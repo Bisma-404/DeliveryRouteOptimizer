@@ -1,0 +1,21 @@
+stop_id,name,address,latitude,longitude,type
+0,Wazir Mansion (Depot),Newnham Road Kharadar Karachi,24.8512,66.9974,depot
+1,Merewether Clock Tower,I.I. Chundrigar Road Karachi,24.8490,66.9935,delivery
+2,Bolton Market,M.A. Jinnah Road Karachi,24.8540,67.0022,delivery
+3,Denso Hall,M.A. Jinnah Road Karachi,24.8551,67.0104,delivery
+4,City Courts,M.A. Jinnah Road Karachi,24.8566,67.0124,delivery
+5,Pakistan Chowk,Pakistan Chowk Karachi,24.8554,67.0136,delivery
+6,Lea Market,Lea Market Kharadar Karachi,24.8594,66.9904,delivery
+7,Kharadar Chowk,Kharadar Karachi,24.8532,66.9938,delivery
+8,Jodia Bazaar,Jodia Bazaar Karachi,24.8572,67.0054,delivery
+9,Memon Masjid,Bolton Market Karachi,24.8558,67.0082,delivery
+10,Civil Hospital Karachi,Mission Road Karachi,24.8662,67.0108,delivery
+11,Dow Medical College,Baba-e-Urdu Road Karachi,24.8646,67.0126,delivery
+12,Khaliq Dina Hall,M.A. Jinnah Road Karachi,24.8534,67.0096,delivery
+13,Mithadar,Mithadar Karachi,24.8586,66.9958,delivery
+14,Ranchore Line,Ranchore Line Karachi,24.8668,67.0038,delivery
+15,Nabi Bakhsh Road,Nabi Bakhsh Road Karachi,24.8624,67.0068,delivery
+16,Garden Quarter,Garden Road Karachi,24.8708,67.0076,delivery
+17,Napier Road,Napier Road Karachi,24.8610,67.0002,delivery
+18,Karachi City Station,McLeod Road Karachi,24.8498,67.0092,delivery
+19,Serai Quarter,Serai Road Karachi,24.8602,67.0088,delivery
