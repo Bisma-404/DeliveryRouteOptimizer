@@ -133,7 +133,8 @@ python experiment_runner.py
 - **Road Boundary**: The Karachi road network covers Saddar, Kharadar, Clifton, DHA, Gulshan, PECHS, Burns Road, and surrounding areas. Locations far outside Pakistan (e.g. Lahore Fort) will raise an `UnreachableLocationError` and are rejected gracefully.
 - **Tile Server**: Application defaults to **Google Maps Standard** tiles to avoid OpenStreetMap 403 "Access Blocked" errors that occur when tile requests don't comply with OSM usage policy.
 - **Python 3.13 Threading**: The app uses a thread-safe `queue.Queue`-based UI dispatcher (`_poll_ui_queue`) to safely dispatch background computation results to the Tkinter main thread, fully compatible with Python 3.13+.
+- **Travel Time Estimates**: Realistic travel time estimates calculated from road network distances, configurable vehicle speed (e.g. 30 km/h), stop service dwell times, and supervised machine learning traffic multipliers. Live GPS telemetry is simulated through the Goal-Based Agent.
+
 
 ## Authors & Contribution
 - Bisma Shahid
-- **Travel Time Estimates**: Realistic travel time estimates calculated from road network distances, configurable vehicle speed (e.g. 30 km/h), stop service dwell times, and supervised machine learning traffic multipliers. Live GPS telemetry is simulated through the Goal-Based Agent.
