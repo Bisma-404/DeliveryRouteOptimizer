@@ -221,7 +221,7 @@ class DatabaseManager:
         with self._connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_routes,
                     AVG(total_distance_km) as avg_distance,
                     AVG(saved_pct) as avg_saved_pct,
@@ -248,3 +248,51 @@ class DatabaseManager:
             """)
             summary["algorithm_breakdown"] = [dict(r) for r in cursor.fetchall()]
             return summary
+
+    def get_dashboard_stats(self) -> Dict[str, Any]:
+        """Retrieve aggregated summary metrics for the executive dashboard."""
+        with self._connection() as conn:
+            cursor = conn.cursor()
+
+            # Routes summary
+            cursor.execute("""
+                SELECT
+                    COUNT(*) as total_routes,
+                    COALESCE(SUM(total_distance_km), 0.0) as total_distance_km,
+                    COALESCE(AVG(saved_pct), 0.0) as avg_saved_pct
+                FROM routes
+            """)
+            r_stats = dict(cursor.fetchone() or {})
+
+            # Stops status summary
+            cursor.execute("""
+                SELECT
+                    COUNT(*) as total_stops,
+                    COALESCE(SUM(CASE WHEN delivery_status = 'Delivered' THEN 1 ELSE 0 END), 0) as completed_deliveries,
+                    COALESCE(SUM(CASE WHEN delivery_status = 'Pending' THEN 1 ELSE 0 END), 0) as pending_deliveries,
+                    COALESCE(SUM(CASE WHEN delivery_status = 'Skipped' THEN 1 ELSE 0 END), 0) as skipped_deliveries
+                FROM route_stops
+                WHERE stop_order > 0
+            """)
+            s_stats = dict(cursor.fetchone() or {})
+
+            # Recent 5 routes
+            cursor.execute("""
+                SELECT id, created_at, route_name, depot_name, num_stops,
+                       total_distance_km, est_time_mins, saved_pct, algorithm, status
+                FROM routes
+                ORDER BY id DESC
+                LIMIT 5
+            """)
+            recent = [dict(r) for r in cursor.fetchall()]
+
+            return {
+                "total_routes": int(r_stats.get("total_routes", 0)),
+                "total_distance_km": float(r_stats.get("total_distance_km", 0.0)),
+                "avg_saved_pct": float(r_stats.get("avg_saved_pct", 0.0)),
+                "total_stops": int(s_stats.get("total_stops", 0)),
+                "completed_deliveries": int(s_stats.get("completed_deliveries", 0)),
+                "pending_deliveries": int(s_stats.get("pending_deliveries", 0)),
+                "skipped_deliveries": int(s_stats.get("skipped_deliveries", 0)),
+                "recent_routes": recent
+            }

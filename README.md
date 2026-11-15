@@ -1,131 +1,86 @@
-# Delivery Route Optimizer on a Real City Map
+# Delivery Route Optimizer
 
-An artificial intelligence software application for urban logistics and courier delivery planning across the real-world road network of Karachi, Pakistan. The system integrates a custom **A\* search algorithm** using the admissible spherical **Haversine heuristic** to calculate exact road distances on OpenStreetMap street topology, alongside baseline graph search methods (**UCS**, **BFS**, **DFS**), four combinatorial optimization metaheuristics (**Nearest Neighbor baseline**, **Hill Climbing with 2-opt**, **Simulated Annealing**, and a **Genetic Algorithm**), **CSP-style delivery constraints** (vehicle payload capacity, priority delivery ordering, time windows), **K-Means spatial clustering**, and an intelligent **delivery simulation engine** with full **SQLite route persistence**.
+A commercial-grade artificial intelligence software application for urban logistics and courier fleet route planning across the real-world road network of Karachi, Pakistan.
 
-An executive dark-themed desktop GUI built with **Tkinter** and **`tkintermapview`** allows delivery managers to interactively search addresses or click on the map to set depots and customer deliveries, inspect visiting itineraries with realistic journey time estimates, simulate route progress with interactive stop completion checkoffs, and inspect historic trips in SQLite.
+The platform integrates:
+- **Exact Road Network Pathfinding**: Custom `heapq` **A\* search** using an admissible spherical **Haversine heuristic** ($h \le h^*$), with comparative baselines (**UCS / Dijkstra**, **BFS**, and **DFS**).
+- **Combinatorial Metaheuristics**: Four independent optimization algorithms (**Nearest Neighbor baseline**, **Hill Climbing with 2-opt descent**, **Simulated Annealing with Boltzmann cooling**, and a **Genetic Algorithm with Ordered Crossover (OX) and Elitism**).
+- **Constraint Satisfaction (CSP)**: Genuine constraint satisfaction solver with Minimum Remaining Values (MRV) and Forward Checking (FC), enforcing hard vehicle capacity limits and delivery time windows, alongside soft urgent-order prioritization.
+- **Spatial Clustering (K-Means)**: Automated partitioning of customer stops into geographic delivery zones (Zone A, Zone B, etc.) with cluster center computation and inertia/elbow analysis.
+- **Supervised Machine Learning**: Regression models (Random Forest and Linear Regression) predicting real-world journey times based on route distance, stop counts, vehicle speed, payload, and hour-of-day traffic dynamics.
+- **Intelligent Delivery Agent**: Rational goal-based courier agent operating within the vehicle simulation, perceiving location milestones, executing package handovers, adjusting cargo weight, and returning to the depot.
+- **Executive 6-Screen GUI**: Desktop interface with a slim collapsible sidebar, working location autocomplete, layer styles, live simulation HUD, and SQLite persistence.
 
 ---
 
-## Key Application Sections
+## Architecture & Screen Structure
 
-The application is structured into three dedicated, highly focused sections:
+The application features six dedicated screens:
 
-### 1. 📋 Route Planner (Main Screen)
-- **Custom Depot Selection**: Search for any address or business landmark, or right-click anywhere on the interactive map to set the depot.
-- **Dynamic Customer Deliveries**: Search for customer addresses or right-click on the map.
-  - Set customer name and delivery address.
-  - Set delivery priority: **Normal** or **Urgent** (urgent deliveries are prioritized early in the sequence).
-  - Specify package payload weight in kilograms.
-  - Specify delivery time windows (e.g. `09:00 - 11:00` or `60 min`).
-- **Stop Management**: Edit customer details or remove individual stops dynamically.
-- **Tour Format Choice**: Select whether the vehicle returns to depot (**Round Trip**) or finishes at the last customer stop (**Open Tour**).
-- **Delivery Constraints & Settings**:
-  - Configurable maximum vehicle capacity (kg) — prevents infeasible overload routes.
-  - Configurable average vehicle speed (km/h) for realistic journey time estimation.
-  - Stop service/dwell time (minutes per stop).
-  - Road search algorithm selection: **A\*** (Recommended, optimal), **UCS** (Dijkstra), **BFS** (Hop-minimal), or **DFS** (Depth-bounded).
-  - Optimization algorithm selection: **Simulated Annealing**, **Genetic Algorithm**, **Hill Climbing (2-opt)**, or **Nearest Neighbor**.
-  - **⚡ Spatial Clustering (K-Means)**: Group delivery locations into geographic zones with distinct map marker colors.
-  - **Quick Sample Presets**: Instantly load 3, 5, 10, or 15 realistic Karachi delivery stops for testing and presentation demonstrations.
+### 1. 📊 Executive Dashboard
+- **Fleet KPI Scorecards**: Total routes planned, completed deliveries, pending deliveries, and cumulative fleet distance logged in SQLite.
+- **Quick Dispatch Actions**: One-click jump to Plan a Delivery, with preset demo loaders (3 Stops, 6 Stops, 10 Stops).
+- **Recent Trips Table**: Real-time view of recent dispatches, delivery counts, road distance, savings %, and statuses.
+- **AI Engine Health Monitor**: Live readiness status for road graphs, database connections, and solvers.
 
-### 2. 🏁 Route Results
-- **Road Network Route Polyline**: Continuous red route hugging every street curve, turn, and junction.
-- **Numbered Visited Sequence**: Delivery markers numbered matching their optimal sequence (#1, #2, ...).
-- **Telemetry Scorecards**:
-  - Total road distance (km).
-  - Estimated journey time (calculated from road distance, vehicle speed, and stop service times; clearly labeled as realistic estimate).
-  - Original vs. optimized distance saved (in km and %).
-  - Solver execution time (seconds) and pathfinder nodes expanded.
-  - CSP constraints status (capacity adherence, urgent delivery priority, time windows).
-- **Step-by-Step Delivery Itinerary**: Table displaying stop order, customer name, leg distance, cumulative distance, estimated arrival time (ETA), and status.
-- **Intelligent Delivery Simulation**:
-  - Live animated delivery van (🚚) traveling along real road curves.
-  - Simulation controls: Start, Pause, Resume, Reset.
-  - Active customer highlight card showing package weight, priority, and time window.
-  - Interactive delivery actions: courier can click **"✓ Mark Completed"** or **"⏭ Skip Delivery"** at each stop, dynamically updating itinerary status.
-  - **Save to SQLite**: Persists the planned route, stops, and delivery statuses directly into the database.
+### 2. 🗺️ Plan a Delivery
+- **Custom Starting Depot Selection**: Search for any Karachi address, business, or landmark, or right-click directly on the interactive map.
+- **Dynamic Customer Deliveries**: Add customer name, street address, individual package weight (kg), delivery priority (**Normal** vs **⚡ Urgent**), and time window constraints (e.g. `45 min` or `09:00 - 11:00`).
+- **Vehicle Capacity & CSP Gauge**: Dynamic visual payload bar tracking loaded vs remaining capacity in kilograms. Automatically blocks invalid overload routes.
+- **Delivery Zones (K-Means Clustering)**: Select cluster count $k \in [2, 5]$ and group stops into colored spatial zones with zone badges on the map.
+- **Working Location Autocomplete**: Real-time suggestion dropdown as you type (e.g. `FAST`, `DHA`, `Clifton`, `Saddar`, `Burns Road`, `Gulshan`) without requiring Enter.
+- **Interactive Road Map**: Embedded GIS map supporting Google Maps Standard, CartoDB Voyager, CartoDB Positron, and CartoDB Dark Matter.
+- **Prominent Optimize Route Button**: Automatically triggers A* distance matrix computation, CSP constraint validation, and metaheuristic optimization in a background thread.
 
-### 3. 📜 Route History
-- **SQLite Persistence**: Stores customer delivery records, depots, planned routes, sequences, distances, estimated times, and statuses in `data/delivery_history.db`.
-- **Route Browser (Treeview)**: Table listing past routes with timestamp, depot, stops count, distance, estimated time, savings %, algorithm, and completion status.
-- **Route Inspection**: Click any historical trip to view its delivery stops and delivery completion statuses.
-- **Load Route to Planner & Map**: One-click restore of any historical trip back into the active Route Planner and map display.
-- **Performance Summary**: Aggregates average route distance, savings %, and compares performance across algorithms.
+### 3. 🏁 Route Results & Simulation
+- **Continuous Road Polyline**: Real street-following geometry hugging curves and intersections (not straight lines).
+- **Numbered Stop Markers**: Visual pins numbered matching their exact optimal sequence (#1, #2, ...).
+- **Telemetry KPI Summary**: Total road distance (km), estimated journey time, baseline distance, saved distance (km and %), solver runtime, and nodes expanded.
+- **Step-by-Step Itinerary Table**: Sequence order, customer name, address, package weight, priority, leg distance, and ETA.
+- **Intelligent Goal-Based Agent Simulation**:
+  - Live animated delivery vehicle traversing real road coordinates.
+  - Agent Telemetry HUD: Agent Action (`NAVIGATE_ROAD`, `ARRIVE_AT_STOP`, `DELIVER_PACKAGE`), Rational Decision Reason, Current Goal, and Remaining Cargo (kg).
+  - Courier Actions: Click **"✓ Mark Completed"** to unload package weight and complete delivery, or **"⏭ Skip Stop"** to retain package.
+  - Persistence: **"💾 Save Route to SQLite History"** button.
+
+### 4. 📜 Delivery History
+- **SQLite Database Storage**: Complete route metadata and individual customer stop logs stored in `data/delivery_history.db`.
+- **Searchable Routes Table**: Filter and sort past trips by date, depot, stop count, distance, savings %, and algorithm.
+- **Stop Inspection Drawer**: Inspect package weights, priorities, and delivery completion statuses.
+- **Load to Planner**: One-click restore of any historical trip back into the active Plan a Delivery map.
+
+### 5. 📈 Insights & Analytics
+- **Algorithm Benchmark Comparison**: Grouped Matplotlib charts comparing Tour Distance (km) and Runtime (seconds) across Nearest Neighbor, Hill Climbing, Simulated Annealing, and Genetic Algorithm.
+- **Convergence Curves**: Iteration/generation vs distance curves for Simulated Annealing cooling and Genetic Algorithm evolution.
+- **K-Means Spatial Zones & Elbow Curve**: 2D coordinate scatter colored by geographic zone with centroids, plus the $k$ vs Inertia elbow plot.
+- **Supervised Learning Travel-Time Analysis**: Actual vs Predicted regression scatter plot with $R^2$ score and feature importance rankings.
+
+### 6. ⚙️ Fleet Settings
+- Vehicle maximum payload capacity (kg).
+- Average city driving speed (km/h) and service dwell time per stop (mins).
+- Route format: Round Trip (Return to depot) vs Open Tour (Finish at last stop).
+- Map style preferences and default optimization solver selection.
 
 ---
 
 ## AI & Search Concepts Implemented
 
-1. **A\* Shortest Path Search (Lab 05)**:
-   - Priority queue implemented with Python's `heapq` (strictly no `networkx.astar_path`).
-   - Heuristic: Spherical great-circle **Haversine distance** ($h(u, goal) \le h^*(u, goal)$).
-   - Proven strictly admissible and consistent (monotonic), reducing node expansions by **60.7%** compared to UCS while guaranteeing optimal road paths.
-2. **Uninformed Search Baselines (Lab 04)**:
-   - **Uniform Cost Search (UCS / Dijkstra)**: Explores lowest cumulative road cost $g(u)$.
-   - **Breadth-First Search (BFS)**: Explores level-by-level for hop-minimal road paths.
-   - **Depth-First Search (DFS)**: Stack-based exploration with depth bounding.
-3. **Combinatorial Optimization Metaheuristics (Lab 06 & 07)**:
-   - **Nearest Neighbor**: Greedy $O(N^2)$ baseline.
-   - **Hill Climbing (2-opt)**: Local search neighborhood descent inverting sub-tours.
-   - **Simulated Annealing**: Stochastic temperature cooling with Boltzmann acceptance probability $P(\text{accept}) = \exp(-\Delta / T)$ to escape local optima.
-   - **Genetic Algorithm**: Evolutionary population search with Ordered Crossover (OX), 2-opt inversion mutation, tournament selection, and elitism.
-4. **Constraint Satisfaction (CSP)**:
-   - Vehicle payload capacity constraint (hard check rejecting infeasible overloading).
-   - Priority delivery constraint (penalizes scheduling urgent orders late in tour).
-   - Time window constraint (evaluates arrival time against promised delivery deadlines).
-5. **Machine Learning / Spatial Clustering (K-Means)**:
-   - Unsupervised K-Means clustering partitions delivery coordinates into geographic clusters/zones for organized regional delivery and cluster-first heuristics.
+| Lab / AI Topic | Technique | Implementation Details |
+| :--- | :--- | :--- |
+| **Search (Informed)** | **A\* Search** | Custom `heapq` priority queue with spherical **Haversine heuristic** ($h \le h^*$, strictly admissible). Counts nodes expanded. |
+| **Search (Uninformed)** | **UCS, BFS, DFS** | Explores cumulative road weights (UCS / Dijkstra), hop-minimal levels (BFS), and depth-bounded stack exploration (DFS). |
+| **Metaheuristics** | **Nearest Neighbor** | Greedy baseline selecting closest unvisited stop in $O(N^2)$. |
+| **Local Search** | **Hill Climbing** | Evaluates 2-opt sub-tour reversals with first-improvement descent to local optima. |
+| **Stochastic Search**| **Simulated Annealing** | Boltzmann acceptance probability $P(\text{accept}) = \exp(-\Delta / T)$ with geometric cooling schedule $T_{k+1} = \alpha T_k$. |
+| **Evolutionary Search**| **Genetic Algorithm** | Population of 80 individuals, Ordered Crossover (OX), 2-opt inversion mutation, tournament selection, and elitism. |
+| **CSP** | **Constraint Satisfaction** | AllDifferent, hard vehicle payload capacity, arrival time windows, and soft priority ordering solved via Backtracking Search with Forward Checking (FC) and MRV. |
+| **Clustering** | **K-Means Clustering** | Unsupervised spatial clustering grouping delivery coordinates into regional zones, plus Elbow Method curve. |
+| **Supervised Learning**| **Random Forest Regressor** | Predicts trip travel time based on distance, stop counts, speed, payload, and hour-of-day traffic patterns ($R^2 > 0.90$). |
+| **Intelligent Agent** | **Goal-Based Agent** | Sensor percepts, rational decision mapping, dynamic cargo weight reduction, and goal completion state machine. |
 
 ---
 
-## Repository Structure
-
-```
-Delivery-Route-Optimizer/
-├── run.py                         <- ROOT-LEVEL LAUNCHER (python run.py)
-├── README.md                      <- Comprehensive project documentation
-├── requirements.txt               <- Pinned project dependencies
-├── .gitignore                     <- Caches, venvs, and temporary files exclusions
-├── experiment_runner.py           <- Standalone 10-instance benchmark script
-├── docs/                          <- Project Proposal and Final Report (MD + PDF)
-│   ├── PROJECT_PROPOSAL.md
-│   ├── PROJECT_PROPOSAL.pdf
-│   ├── PROJECT_REPORT.md
-│   └── PROJECT_REPORT.pdf
-├── src/                           <- Application source code
-│   ├── __init__.py
-│   ├── main.py                    <- Entry point
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── astar.py               <- Custom heapq A*, UCS, BFS, DFS & Haversine
-│   │   ├── problem.py             <- RouteProblem formulation, CSP constraints & fitness
-│   │   ├── solvers.py             <- MetaheuristicSolver hierarchy (NN, HC, SA, GA)
-│   │   └── clustering.py          <- K-Means spatial clustering & zone ordering
-│   ├── data/
-│   │   ├── __init__.py
-│   │   ├── graph_loader.py        <- OSMnx graph loader & GraphML cache
-│   │   ├── stop_generator.py      <- Stop generation & CSV parsing
-│   │   ├── geocoder.py            <- Address search & road network snapping
-│   │   └── database.py            <- SQLite database persistence manager
-│   └── gui/
-│       ├── __init__.py
-│       └── app.py                 <- 3-Section dark-themed Tkinter + TkinterMapView GUI
-├── data/
-│   ├── delivery_history.db        <- SQLite database for route history
-│   ├── raw/                       <- karachi.graphml, lahore.graphml, stops_*.csv
-│   └── processed/
-├── tests/
-│   ├── test_all.py                <- Core unit test suite
-│   ├── test_delivery_suite.py     <- Integration test suite (3, 5, 10, 15 stops, SQLite, geocoding)
-│   └── quick_test.py              <- Backend validation script
-└── outputs/
-    ├── figures/                   <- 4 Matplotlib evaluation figures
-    └── results/                   <- results.csv, summary_metrics.csv
-```
-
----
-
-## Setup and Installation
+## Setup & Execution
 
 ### 1. Prerequisites
 - Python 3.10, 3.11, 3.12, or 3.13.
@@ -136,33 +91,35 @@ Delivery-Route-Optimizer/
 pip install -r requirements.txt
 ```
 
----
-
-## Exact Run Commands
-
-### 1. Launch the Desktop Application
-From the project root directory, run:
+### 3. Launch the Application
+From the project root:
 ```powershell
 python run.py
 ```
-*(Alternatively: `python src/main.py`)*
+*(Press **F11** for full-screen presentation mode).*
 
-### 2. Run the Automated Test Suites
+### 4. Run Automated Test Suites
 ```powershell
-python tests/test_all.py           # 5 core unit tests
-python tests/test_delivery_suite.py # 7 integration tests
-python tests/quick_test.py          # 20 backend checks
-python tests/test_gui_workflow.py   # Full GUI workflow test (empty start, search, optimize, SQLite)
+# 16-point comprehensive verification suite:
+python tests/test_complete_application.py
+
+# Independent solver verification (records initial/final routes, evaluations, runtime):
+python tests/test_solvers_independent.py
+
+# Integration and regression test suites:
+python tests/test_all.py
+python tests/test_delivery_suite.py
+python tests/quick_test.py
 ```
 
-### 3. Run the Benchmark Experiment Suite
+### 5. Run the Benchmark Experiment Suite
 ```powershell
 python experiment_runner.py
 ```
 
 ---
 
-## Data Source & Attribution
+## Data Attribution & Limitations
 
 - **Road Data**: OpenStreetMap contributors via [OSMnx](https://osmnx.readthedocs.io/), licensed under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/).
 - **Map Tiles**: Google Maps Standard & CartoDB basemaps.
@@ -179,6 +136,4 @@ python experiment_runner.py
 
 ## Authors & Contribution
 - Bisma Shahid
-  
-
-
+- **Travel Time Estimates**: Realistic travel time estimates calculated from road network distances, configurable vehicle speed (e.g. 30 km/h), stop service dwell times, and supervised machine learning traffic multipliers. Live GPS telemetry is simulated through the Goal-Based Agent.

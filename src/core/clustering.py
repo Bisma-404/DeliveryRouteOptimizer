@@ -101,11 +101,46 @@ def cluster_delivery_stops(
 
     summary = {
         "n_clusters": k,
-        "clusters": clusters_info
+        "clusters": clusters_info,
+        "centroids": kmeans.cluster_centers_.tolist(),
+        "inertia": float(kmeans.inertia_)
     }
 
     logger.info("Grouped %d deliveries into %d spatial zones via K-Means", num_deliveries, k)
     return updated_stops, clusters_dict, summary
+
+
+def compute_elbow_curve(
+    stops: List[Dict[str, Any]],
+    max_k: int = 6
+) -> Tuple[List[int], List[float]]:
+    """Compute K-Means sum of squared distances (inertia) for elbow curve analysis.
+
+    Args:
+        stops: List of delivery stops.
+        max_k: Maximum number of clusters to test.
+
+    Returns:
+        Tuple[List[int], List[float]]: (k_values, inertias)
+    """
+    delivery_indices = [i for i in range(len(stops)) if i != 0 and stops[i].get("type") != "depot"]
+    if len(delivery_indices) < 2:
+        return [1], [0.0]
+
+    coords = np.array([[stops[i]["latitude"], stops[i]["longitude"]] for i in delivery_indices])
+    n_points = len(coords)
+    upper_k = min(max_k, n_points)
+
+    k_values: List[int] = []
+    inertias: List[float] = []
+
+    for k in range(1, upper_k + 1):
+        km = KMeans(n_clusters=k, random_state=42, n_init=10)
+        km.fit(coords)
+        k_values.append(k)
+        inertias.append(float(km.inertia_))
+
+    return k_values, inertias
 
 
 def get_cluster_first_tour(

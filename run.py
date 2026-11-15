@@ -37,7 +37,7 @@ logger = logging.getLogger("run")
 
 def main() -> None:
     """Launch the full-screen Delivery Route Optimizer GUI."""
-    logger.info("Starting Delivery Route Optimizer — FAST-NUCES AI Lab Fall 2026")
+    logger.info("Starting Delivery Route Optimizer — Fleet Logistics Edition")
     logger.info("Project root: %s", PROJECT_ROOT)
 
     from src.gui.app import DeliveryRouteOptimizerApp
