@@ -6,14 +6,6 @@ An executive dark-themed desktop GUI built with **Tkinter** and **`tkintermapvie
 
 ---
 
-## Authors & Contribution
-
-| Name | Roll Number | Section | Contribution & Modules Owned |
-| :--- | :---: | :---: | :--- |
-| **Bisma Shahid** | 24K-3012 | BSE-5A | **100% (Solo Leader)**: Architected OOP design (`RouteProblem`, `AStarPlanner`, `MetaheuristicSolver`, `LocationGeocoder`, `DatabaseManager`), implemented custom `heapq` A\* search and Haversine heuristic, implemented UCS/BFS/DFS search methods, built all 4 metaheuristic solvers, designed Tkinter + `tkintermapview` GUI with 3-tab architecture (Route Planner, Results, History), integrated K-Means spatial clustering, implemented delivery simulation with stop checkoffs, built SQLite database storage, designed benchmark runner, and authored documentation. |
-
----
-
 ## Key Application Sections
 
 The application is structured into three dedicated, highly focused sections:
@@ -184,4 +176,9 @@ python experiment_runner.py
 - **Road Boundary**: The Karachi road network covers Saddar, Kharadar, Clifton, DHA, Gulshan, PECHS, Burns Road, and surrounding areas. Locations far outside Pakistan (e.g. Lahore Fort) will raise an `UnreachableLocationError` and are rejected gracefully.
 - **Tile Server**: Application defaults to **Google Maps Standard** tiles to avoid OpenStreetMap 403 "Access Blocked" errors that occur when tile requests don't comply with OSM usage policy.
 - **Python 3.13 Threading**: The app uses a thread-safe `queue.Queue`-based UI dispatcher (`_poll_ui_queue`) to safely dispatch background computation results to the Tkinter main thread, fully compatible with Python 3.13+.
+
+## Authors & Contribution
+- Bisma Shahid
+  
+
 
