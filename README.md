@@ -1,6 +1,6 @@
 # Delivery Route Optimizer
 
-A commercial-grade artificial intelligence software application for urban logistics and courier fleet route planning across the real-world road network of Karachi, Pakistan.
+A Flask web application for planning delivery routes across the local Karachi road network. The interface runs in a browser and uses the existing routing, clustering, simulation, and SQLite services.
 
 The platform integrates:
 - **Exact Road Network Pathfinding**: Custom `heapq` **A\* search** using an admissible spherical **Haversine heuristic** ($h \le h^*$), with comparative baselines (**UCS / Dijkstra**, **BFS**, and **DFS**).
@@ -9,57 +9,54 @@ The platform integrates:
 - **Spatial Clustering (K-Means)**: Automated partitioning of customer stops into geographic delivery zones (Zone A, Zone B, etc.) with cluster center computation and inertia/elbow analysis.
 - **Supervised Machine Learning**: Regression models (Random Forest and Linear Regression) predicting real-world journey times based on route distance, stop counts, vehicle speed, payload, and hour-of-day traffic dynamics.
 - **Intelligent Delivery Agent**: Rational goal-based courier agent operating within the vehicle simulation, perceiving location milestones, executing package handovers, adjusting cargo weight, and returning to the depot.
-- **Executive 6-Screen GUI**: Desktop interface with a slim collapsible sidebar, working location autocomplete, layer styles, live simulation HUD, and SQLite persistence.
+- **Six-screen web interface**: Overview, route planner, results, trip history, analytics, and fleet settings, with browser-based light and dark themes.
 
 ---
 
 ## Architecture & Screen Structure
 
-The application features six dedicated screens:
+The application features six browser screens:
 
-### 1. 📊 Executive Dashboard
-- **Fleet KPI Scorecards**: Total routes planned, completed deliveries, pending deliveries, and cumulative fleet distance logged in SQLite.
-- **Quick Dispatch Actions**: One-click jump to Plan a Delivery, with preset demo loaders (3 Stops, 6 Stops, 10 Stops).
+### 1. Overview
+- **Fleet metrics**: Saved routes, completed and pending deliveries, total distance, and average distance saved.
+- **Quick dispatch**: Open the planner or load 3-, 6-, and 10-stop sample routes.
 - **Recent Trips Table**: Real-time view of recent dispatches, delivery counts, road distance, savings %, and statuses.
-- **AI Engine Health Monitor**: Live readiness status for road graphs, database connections, and solvers.
+- **Road graph status**: Shows whether the local Karachi graph is ready.
 
-### 2. 🗺️ Plan a Delivery
-- **Custom Starting Depot Selection**: Search for any Karachi address, business, or landmark, or right-click directly on the interactive map.
+### 2. Plan a Delivery
+- **Depot and stop selection**: Search the built-in Karachi place directory and OSM results, or click the map to select coordinates.
 - **Dynamic Customer Deliveries**: Add customer name, street address, individual package weight (kg), delivery priority (**Normal** vs **⚡ Urgent**), and time window constraints (e.g. `45 min` or `09:00 - 11:00`).
-- **Vehicle Capacity & CSP Gauge**: Dynamic visual payload bar tracking loaded vs remaining capacity in kilograms. Automatically blocks invalid overload routes.
+- **Vehicle capacity**: Payload bar shows loaded and remaining capacity; route calculation is blocked when overloaded.
 - **Delivery Zones (K-Means Clustering)**: Select cluster count $k \in [2, 5]$ and group stops into colored spatial zones with zone badges on the map.
-- **Working Location Autocomplete**: Real-time suggestion dropdown as you type (e.g. `FAST`, `DHA`, `Clifton`, `Saddar`, `Burns Road`, `Gulshan`) without requiring Enter.
-- **Interactive Road Map**: Embedded GIS map supporting Google Maps Standard, CartoDB Voyager, CartoDB Positron, and CartoDB Dark Matter.
-- **Prominent Optimize Route Button**: Automatically triggers A* distance matrix computation, CSP constraint validation, and metaheuristic optimization in a background thread.
+- **Location autocomplete**: Suggestions appear while typing names such as `FAST`, `DHA`, `Clifton`, `Saddar`, or `Gulshan`.
+- **Interactive map**: Google Maps Standard by default, with CARTO Voyager, Positron, and Dark Matter layers.
+- **Route calculation**: Builds the selected road-distance matrix, checks constraints, and runs the selected solver.
 
-### 3. 🏁 Route Results & Simulation
-- **Continuous Road Polyline**: Real street-following geometry hugging curves and intersections (not straight lines).
-- **Numbered Stop Markers**: Visual pins numbered matching their exact optimal sequence (#1, #2, ...).
-- **Telemetry KPI Summary**: Total road distance (km), estimated journey time, baseline distance, saved distance (km and %), solver runtime, and nodes expanded.
-- **Step-by-Step Itinerary Table**: Sequence order, customer name, address, package weight, priority, leg distance, and ETA.
-- **Intelligent Goal-Based Agent Simulation**:
-  - Live animated delivery vehicle traversing real road coordinates.
-  - Agent Telemetry HUD: Agent Action (`NAVIGATE_ROAD`, `ARRIVE_AT_STOP`, `DELIVER_PACKAGE`), Rational Decision Reason, Current Goal, and Remaining Cargo (kg).
-  - Courier Actions: Click **"✓ Mark Completed"** to unload package weight and complete delivery, or **"⏭ Skip Stop"** to retain package.
-  - Persistence: **"💾 Save Route to SQLite History"** button.
+### 3. Route Results & Simulation
+- **Road route map**: Displays calculated road geometry and stop order.
+- **Route metrics**: Distance, estimated time, nearest-neighbor comparison, solver runtime, evaluations, and expanded road nodes.
+- **Step-by-step itinerary**: Stop order, address, weight, priority, time window, road leg distance, and delivery status.
+- **Delivery run**: Animates between stops, supports pause, resume, and stop, records delivered or skipped packages, and updates cargo and progress.
+- **Persistence**: Save route details and delivery outcomes to SQLite history.
 
-### 4. 📜 Delivery History
+### 4. Delivery History
 - **SQLite Database Storage**: Complete route metadata and individual customer stop logs stored in `data/delivery_history.db`.
 - **Searchable Routes Table**: Filter and sort past trips by date, depot, stop count, distance, savings %, and algorithm.
 - **Stop Inspection Drawer**: Inspect package weights, priorities, and delivery completion statuses.
 - **Load to Planner**: One-click restore of any historical trip back into the active Plan a Delivery map.
 
-### 5. 📈 Insights & Analytics
-- **Algorithm Benchmark Comparison**: Grouped Matplotlib charts comparing Tour Distance (km) and Runtime (seconds) across Nearest Neighbor, Hill Climbing, Simulated Annealing, and Genetic Algorithm.
-- **Convergence Curves**: Iteration/generation vs distance curves for Simulated Annealing cooling and Genetic Algorithm evolution.
-- **K-Means Spatial Zones & Elbow Curve**: 2D coordinate scatter colored by geographic zone with centroids, plus the $k$ vs Inertia elbow plot.
-- **Supervised Learning Travel-Time Analysis**: Actual vs Predicted regression scatter plot with $R^2$ score and feature importance rankings.
+### 5. Insights & Analytics
+- **Saved-trip distance chart**: Compare optimized route distances with nearest-neighbor baselines.
+- **Solver usage chart**: Count saved trips by solver.
+- **Solver convergence**: View the distance trace from the active optimization.
+- **Travel-time model metrics**: Holdout evaluation on generated training data; these are not live traffic predictions.
 
-### 6. ⚙️ Fleet Settings
+### 6. Fleet Settings
 - Vehicle maximum payload capacity (kg).
 - Average city driving speed (km/h) and service dwell time per stop (mins).
 - Route format: Round Trip (Return to depot) vs Open Tour (Finish at last stop).
-- Map style preferences and default optimization solver selection.
+- Map style, road search method, and default optimization solver.
+- The light or dark interface theme is stored in the browser.
 
 ---
 
@@ -92,11 +89,13 @@ pip install -r requirements.txt
 ```
 
 ### 3. Launch the Application
-From the project root:
+From the project root, start the local Flask server:
 ```powershell
 python run.py
 ```
-*(Press **F11** for full-screen presentation mode).*
+Then open **http://127.0.0.1:5000** in a browser. The server loads the cached Karachi road graph in the background. Use `python run.py --port 5001` to choose another local port.
+
+The browser theme toggle switches between light and dark palettes and remembers the selection on that browser. Map tiles and autocomplete for locations outside the built-in Karachi directory require an internet connection.
 
 ### 4. Run Automated Test Suites
 ```powershell
@@ -110,6 +109,9 @@ python tests/test_solvers_independent.py
 python tests/test_all.py
 python tests/test_delivery_suite.py
 python tests/quick_test.py
+
+# Flask planner, optimization, delivery run, and history:
+python -m unittest discover -s tests -p test_webapp.py -v
 ```
 
 ### 5. Run the Benchmark Experiment Suite
@@ -130,10 +132,9 @@ python experiment_runner.py
 ## Limitations
 
 - **Traffic Dynamics**: Journey times are realistic estimates based on road distance, configurable vehicle speed (e.g. 30 km/h), and stop service times. Live GPS traffic congestion feeds are not claimed.
-- **Road Boundary**: The Karachi road network covers Saddar, Kharadar, Clifton, DHA, Gulshan, PECHS, Burns Road, and surrounding areas. Locations far outside Pakistan (e.g. Lahore Fort) will raise an `UnreachableLocationError` and are rejected gracefully.
-- **Tile Server**: Application defaults to **Google Maps Standard** tiles to avoid OpenStreetMap 403 "Access Blocked" errors that occur when tile requests don't comply with OSM usage policy.
-- **Python 3.13 Threading**: The app uses a thread-safe `queue.Queue`-based UI dispatcher (`_poll_ui_queue`) to safely dispatch background computation results to the Tkinter main thread, fully compatible with Python 3.13+.
-- **Travel Time Estimates**: Realistic travel time estimates calculated from road network distances, configurable vehicle speed (e.g. 30 km/h), stop service dwell times, and supervised machine learning traffic multipliers. Live GPS telemetry is simulated through the Goal-Based Agent.
+- **Road boundary**: Route distances use the cached Karachi graph, centered on Saddar/Kharadar. Places far from that graph may snap to distant road nodes; check stop coordinates before optimizing.
+- **Map tiles and search**: CARTO map tiles and OSM location results need an internet connection. OSM autocomplete is rate-limited.
+- **Travel-time estimates**: Estimates use route distance, configured speed, and service time. The model metrics use generated data; live traffic is not available.
 
 
 ## Authors & Contribution

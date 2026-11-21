@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Route Desk · Delivery Route Optimizer</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" data-nav="dashboard" aria-label="Route Desk home">
+        <span class="brand-mark">RD</span>
+        <span><strong>Route Desk</strong><small>Delivery operations</small></span>
+      </a>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="primary-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-nav="dashboard"><span class="nav-icon">▦</span>Overview</button>
+        <button class="nav-item" data-nav="planner"><span class="nav-icon">⌖</span>Route planner</button>
+        <button class="nav-item" data-nav="results"><span class="nav-icon">↗</span>Route results</button>
+        <button class="nav-item" data-nav="history"><span class="nav-icon">◷</span>Trip history</button>
+        <button class="nav-item" data-nav="analytics"><span class="nav-icon">▤</span>Analytics</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="network-card">
+          <span class="status-dot" id="network-dot"></span>
+          <div><strong id="network-label">Connecting to road network</strong><small>Karachi · local graph</small></div>
+        </div>
+        <button class="nav-item" data-nav="settings"><span class="nav-icon">⚙</span>Fleet settings</button>
+        <div class="sidebar-foot">Route Desk <span>v2.0</span></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="breadcrumb"><span>Operations</span><span class="crumb-sep">/</span><strong id="page-title">Overview</strong></div>
+        <div class="topbar-actions">
+          <span class="date-label" id="today-label"></span>
+          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch color theme" title="Switch color theme">◐</button>
+          <button class="avatar" type="button" title="Local workspace">RD</button>
+        </div>
+      </header>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div id="graph-alert" class="graph-alert hidden"></div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="page-heading">
+          <div><div class="eyebrow">FLEET WORKSPACE</div><h1>Overview</h1><p>A clear view of your planned routes and delivery activity.</p></div>
+          <button class="button button-primary" data-nav="planner"><span>＋</span> Plan a route</button>
+        </div>
+        <div class="kpi-grid">
+          <article class="kpi-card"><div class="kpi-label">Saved trips</div><div class="kpi-value" id="kpi-routes">—</div><div class="kpi-note">Routes in trip history</div></article>
+          <article class="kpi-card"><div class="kpi-label">Distance logged</div><div class="kpi-value"><span id="kpi-distance">—</span><small>km</small></div><div class="kpi-note">Across saved trips</div></article>
+          <article class="kpi-card"><div class="kpi-label">Average distance saved</div><div class="kpi-value"><span id="kpi-savings">—</span><small>%</small></div><div class="kpi-note">Compared with nearest-neighbor baseline</div></article>
+          <article class="kpi-card"><div class="kpi-label">Deliveries completed</div><div class="kpi-value" id="kpi-completed">—</div><div class="kpi-note"><span id="kpi-pending">0</span> pending across saved trips</div></article>
+        </div>
+        <div class="content-grid dashboard-grid">
+          <article class="panel recent-panel">
+            <div class="panel-heading"><div><h2>Recent trips</h2><p>Your latest saved delivery routes</p></div><button class="text-button" data-nav="history">View history <span>→</span></button></div>
+            <div class="table-wrap">
+              <table><thead><tr><th>Trip</th><th>Stops</th><th>Distance</th><th>Saved</th><th>Status</th></tr></thead>
+                <tbody id="recent-routes"><tr><td class="empty-cell" colspan="5">No saved routes yet.</td></tr></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel dispatch-panel">
+            <div class="panel-heading"><div><h2>Start planning</h2><p>Choose a starting point or load a sample</p></div></div>
+            <div class="dispatch-actions">
+              <button class="dispatch-link" data-nav="planner"><span class="action-icon">⌖</span><span><strong>Build a route</strong><small>Set a depot and add delivery stops</small></span><b>→</b></button>
+              <button class="dispatch-link sample-button" data-count="3"><span class="action-icon">3</span><span><strong>Try a 3-stop sample</strong><small>Load a route from the Karachi dataset</small></span><b>→</b></button>
+              <button class="dispatch-link sample-button" data-count="6"><span class="action-icon">6</span><span><strong>Try a 6-stop sample</strong><small>Compare a larger delivery run</small></span><b>→</b></button>
+              <button class="dispatch-link sample-button" data-count="10"><span class="action-icon">10</span><span><strong>Try a 10-stop sample</strong><small>Load a full delivery run</small></span><b>→</b></button>
+            </div>
+          </article>
+        </div>
+        <article class="panel activity-panel">
+          <div class="panel-heading"><div><h2>Routing workflow</h2><p>Each route uses the local road graph and your selected constraints.</p></div></div>
+          <div class="workflow-steps">
+            <div><span>01</span><strong>Choose stops</strong><small>Search Karachi locations or load a sample.</small></div>
+            <div><span>02</span><strong>Set constraints</strong><small>Capacity, priorities, time windows and trip type.</small></div>
+            <div><span>03</span><strong>Compare & dispatch</strong><small>Review the route, record delivery outcomes, save it.</small></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-planner">
+        <div class="page-heading">
+          <div><div class="eyebrow">ROUTE SETUP</div><h1>Plan a delivery route</h1><p>Choose a depot, add customer stops, then calculate a road-based route.</p></div>
+          <div class="heading-actions"><button class="button button-secondary sample-button" data-count="3">3 stops</button><button class="button button-secondary sample-button" data-count="6">6 stops</button><button class="button button-secondary sample-button" data-count="10">10 stops</button><button class="button button-quiet" id="clear-route">Clear route</button></div>
+        </div>
+        <div class="planner-layout">
+          <div class="planner-column">
+            <article class="panel planner-form-panel">
+              <div class="panel-heading"><div><h2>Stops</h2><p id="stop-count-label">Set a depot and add at least one delivery.</p></div></div>
+              <label class="field-label" for="place-search">Search a Karachi location</label>
+              <div class="search-wrap"><span class="search-icon">⌕</span><input id="place-search" autocomplete="off" placeholder="FAST, Clifton, DHA Phase 1…"><span id="search-spinner" class="search-spinner hidden"></span></div>
+              <div id="search-results" class="search-results hidden"></div>
+              <div id="selected-place" class="selected-place hidden">
+                <div><strong id="selected-name"></strong><small id="selected-address"></small></div>
+                <button class="small-icon-button" id="dismiss-place" aria-label="Dismiss selection">×</button>
+                <div class="selection-actions"><button class="button button-secondary" id="use-as-depot">Set as depot</button><button class="button button-primary" id="use-as-delivery">Add delivery</button></div>
+              </div>
+              <div class="map-hint"><span class="hint-dot"></span> You can also click the map to select a point.</div>
+              <div class="stop-list-heading"><span>ROUTE STOPS</span><button class="text-button" id="clear-deliveries">Remove all</button></div>
+              <div id="stop-list" class="stop-list"></div>
+              <div class="capacity-block">
+                <div class="capacity-heading"><span>Vehicle load</span><strong><span id="load-weight">0.0</span> / <span id="capacity-max">50</span> kg</strong></div>
+                <div class="capacity-track"><span id="capacity-bar"></span></div>
+                <small id="capacity-note">Add deliveries to check the available capacity.</small>
+              </div>
+              <div id="delivery-editor" class="delivery-editor hidden">
+                <div class="editor-heading"><strong id="delivery-editor-title">Delivery details</strong><button class="small-icon-button" id="close-editor">×</button></div>
+                <label class="field-label" for="delivery-name">Stop name</label><input id="delivery-name" class="text-input" maxlength="100">
+                <div class="field-row">
+                  <div><label class="field-label" for="delivery-weight">Package weight (kg)</label><input id="delivery-weight" type="number" class="text-input" min="0" max="500" step="0.5" value="5"></div>
+                  <div><label class="field-label" for="delivery-priority">Priority</label><select id="delivery-priority" class="text-input"><option>Normal</option><option>Urgent</option></select></div>
+                </div>
+                <label class="field-label" for="delivery-window">Time window</label><input id="delivery-window" class="text-input" value="Anytime" placeholder="Anytime or 09:00 - 11:00">
+                <button class="button button-primary full-width" id="confirm-delivery">Add to route</button>
+              </div>
+              <div class="planner-footer">
+                <button class="button button-primary full-width" id="optimize-button" disabled>Calculate route <span>→</span></button>
+                <small id="planner-status">Waiting for the Karachi road graph…</small>
+              </div>
+            </article>
+            <article class="panel zone-panel">
+              <div class="panel-heading"><div><h2>Delivery zones</h2><p>Group nearby stops using K-Means.</p></div></div>
+              <div class="inline-controls"><label for="zone-count">Zones</label><select id="zone-count" class="text-input compact-select"><option>2</option><option>3</option><option>4</option><option>5</option></select><button class="button button-secondary" id="cluster-button">Create zones</button></div>
+              <div id="zone-list" class="zone-list"><span class="muted-text">Add two or more deliveries to create zones.</span></div>
+              <div class="chart-frame elbow-chart-frame"><canvas id="elbow-chart"></canvas></div>
+            </article>
+          </div>
+          <article class="panel map-panel">
+            <div class="map-toolbar"><div><strong>Karachi road network</strong><small>Click the map to add a point</small></div><select id="map-style" class="text-input compact-select" aria-label="Map style"><option>Google Maps (Standard)</option><option>Voyager</option><option>Positron (Light)</option><option>Dark Matter</option></select></div>
+            <div id="route-map" class="map-frame"></div>
+            <div class="map-legend"><span><i class="legend-depot"></i> Depot</span><span><i class="legend-stop"></i> Delivery</span><span><i class="legend-route"></i> Route</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-results">
+        <div class="page-heading">
+          <div><div class="eyebrow">OPTIMIZED ROUTE</div><h1>Route results</h1><p id="result-subtitle">Plan a route to see its itinerary and performance.</p></div>
+          <div class="heading-actions"><button class="button button-secondary" id="save-route">Save trip</button><button class="button button-primary" data-nav="planner">Edit route</button></div>
+        </div>
+        <div id="results-empty" class="panel empty-state"><span class="empty-mark">↗</span><h2>No route to review</h2><p>Set a depot and at least one delivery stop to calculate a route.</p><button class="button button-primary" data-nav="planner">Open route planner</button></div>
+        <div id="results-content" class="hidden">
+          <div class="kpi-grid result-kpis">
+            <article class="kpi-card"><div class="kpi-label">Route distance</div><div class="kpi-value"><span id="result-distance">—</span><small>km</small></div><div class="kpi-note" id="result-solver">Selected solver</div></article>
+            <article class="kpi-card"><div class="kpi-label">Estimated duration</div><div class="kpi-value" id="result-duration">—</div><div class="kpi-note">Driving and service time</div></article>
+            <article class="kpi-card"><div class="kpi-label">Distance saved</div><div class="kpi-value"><span id="result-saved">—</span><small>km</small></div><div class="kpi-note" id="result-saved-pct">vs. nearest-neighbor baseline</div></article>
+            <article class="kpi-card"><div class="kpi-label">Solver runtime</div><div class="kpi-value"><span id="result-runtime">—</span><small>s</small></div><div class="kpi-note"><span id="result-evaluations">—</span> candidate evaluations</div></article>
+          </div>
+          <div class="content-grid result-grid">
+            <article class="panel result-map-panel"><div class="panel-heading"><div><h2>Route map</h2><p id="route-node-count">Road-following route and stop order</p></div></div><div id="results-map" class="map-frame results-map"></div><div class="map-legend"><span><i class="legend-depot"></i> Depot</span><span><i class="legend-stop"></i> Delivery order</span></div></article>
+            <article class="panel simulation-panel">
+              <div class="panel-heading"><div><h2>Delivery run</h2><p>Record the outcome at each scheduled stop.</p></div></div>
+              <div class="agent-state"><span class="agent-state-dot"></span><div><small id="agent-action">Run not started</small><strong id="agent-goal">Ready at depot</strong></div></div>
+              <p class="agent-reason" id="agent-reason">Start the run to enable delivery actions.</p>
+              <div class="agent-progress"><div class="capacity-heading"><span>Run progress</span><strong id="agent-progress-label">0%</strong></div><div class="capacity-track"><span id="agent-progress-bar"></span></div></div>
+              <div class="agent-metrics"><div><small>Remaining cargo</small><strong><span id="agent-cargo">0.0</span> kg</strong></div><div><small>Delivered</small><strong id="agent-delivered">0 / 0</strong></div><div><small>Skipped</small><strong id="agent-skipped">0</strong></div></div>
+              <div class="agent-actions"><button class="button button-secondary full-width" id="start-run">Start delivery run</button><div class="agent-action-row hidden" id="delivery-actions"><button class="button button-success" id="mark-delivered">Mark delivered</button><button class="button button-quiet" id="skip-delivery">Skip stop</button></div></div>
+              <div id="simulation-transport" class="simulation-transport hidden"><button class="button button-quiet" id="pause-run">Pause movement</button><button class="button button-quiet" id="stop-run">Stop run</button></div>
+            </article>
+          </div>
+          <article class="panel itinerary-panel"><div class="panel-heading"><div><h2>Itinerary</h2><p id="itinerary-summary">Stops in planned order</p></div><span class="tag" id="csp-tag">Constraints checked</span></div><div class="table-wrap">
+            <table><thead><tr><th>Order</th><th>Stop</th><th>Package</th><th>Priority</th><th>Time window</th><th>Leg</th><th>Status</th></tr></thead><tbody id="itinerary-body"></tbody></table>
+          </div></article>
+          <article class="panel convergence-panel"><div class="panel-heading"><div><h2>Solver convergence</h2><p>Recorded best route distance over solver iterations.</p></div></div><div class="chart-frame convergence-chart-frame"><canvas id="convergence-chart"></canvas></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-history">
+        <div class="page-heading"><div><div class="eyebrow">SAVED TRIPS</div><h1>Trip history</h1><p>Review saved routes, inspect delivery stops, or load a trip into the planner.</p></div><button class="button button-secondary" id="refresh-history">Refresh list</button></div>
+        <article class="panel history-panel"><div class="panel-heading"><div><h2>Saved routes</h2><p id="history-count">Routes stored in the local SQLite database</p></div><input id="history-filter" class="text-input history-search" placeholder="Filter by trip or depot"></div>
+          <div class="table-wrap"><table><thead><tr><th>Trip</th><th>Date</th><th>Depot</th><th>Stops</th><th>Distance</th><th>Saved</th><th>Algorithm</th><th>Status</th><th></th></tr></thead><tbody id="history-body"><tr><td colspan="9" class="empty-cell">Loading trip history…</td></tr></tbody></table></div>
+        </article>
+        <article class="panel history-detail hidden" id="history-detail"><div class="panel-heading"><div><h2 id="history-detail-title">Trip details</h2><p id="history-detail-meta"></p></div><button class="small-icon-button" id="close-history-detail">×</button></div><div id="history-detail-stops" class="history-stops"></div></article>
+      </section>
+
+      <section class="view" id="view-analytics">
+        <div class="page-heading"><div><div class="eyebrow">ROUTE PERFORMANCE</div><h1>Analytics</h1><p>Performance summaries are calculated from saved trips.</p></div><button class="button button-secondary" id="refresh-analytics">Refresh data</button></div>
+        <div class="kpi-grid analytics-kpis">
+          <article class="kpi-card"><div class="kpi-label">Saved trips</div><div class="kpi-value" id="analytics-routes">0</div></article>
+          <article class="kpi-card"><div class="kpi-label">Average trip distance</div><div class="kpi-value"><span id="analytics-distance">0</span><small>km</small></div></article>
+          <article class="kpi-card"><div class="kpi-label">Average distance saved</div><div class="kpi-value"><span id="analytics-savings">0</span><small>%</small></div></article>
+          <article class="kpi-card"><div class="kpi-label">Deliveries recorded</div><div class="kpi-value" id="analytics-stops">0</div></article>
+        </div>
+        <div class="content-grid analytics-grid">
+          <article class="panel chart-panel"><div class="panel-heading"><div><h2>Distance by trip</h2><p>Saved route distance compared with baseline</p></div></div><div class="chart-frame analytics-chart-frame"><canvas id="distance-chart"></canvas></div></article>
+          <article class="panel chart-panel"><div class="panel-heading"><div><h2>Solver usage</h2><p>Number of saved routes by algorithm</p></div></div><div class="chart-frame analytics-chart-frame"><canvas id="solver-chart"></canvas></div></article>
+          <article class="panel chart-panel"><div class="panel-heading"><div><h2>Delivery zones</h2><p id="cluster-chart-note">Current stop locations and K-Means elbow curve</p></div></div>
+            <div class="chart-pair"><div class="chart-frame pair-chart-frame"><canvas id="cluster-chart"></canvas></div><div class="chart-frame pair-chart-frame"><canvas id="analytics-elbow-chart"></canvas></div></div>
+          </article>
+          <article class="panel chart-panel"><div class="panel-heading"><div><h2>Model diagnostics</h2><p>Held-out estimates and feature contributions</p></div></div>
+            <div class="chart-pair"><div class="chart-frame pair-chart-frame"><canvas id="prediction-chart"></canvas></div><div class="chart-frame pair-chart-frame"><canvas id="feature-chart"></canvas></div></div>
+          </article>
+        </div>
+        <article class="panel model-panel"><div class="panel-heading"><div><h2>Travel-time model</h2><p>Evaluation on generated training data; estimates are indicative, not live traffic predictions.</p></div><span class="tag">Random Forest</span></div>
+          <div class="model-metrics"><div><small>R² score</small><strong id="model-r2">—</strong></div><div><small>Mean absolute error</small><strong><span id="model-mae">—</span> min</strong></div><div><small>Test examples</small><strong id="model-samples">—</strong></div></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="page-heading"><div><div class="eyebrow">FLEET PREFERENCES</div><h1>Fleet settings</h1><p>Set default capacity, travel assumptions and route-solving preferences.</p></div></div>
+        <div class="settings-layout">
+          <article class="panel settings-panel"><div class="panel-heading"><div><h2>Vehicle and service</h2><p>Used for load validation and journey-time estimates.</p></div></div>
+            <div class="settings-grid">
+              <div><label class="field-label" for="setting-capacity">Maximum payload</label><div class="unit-input"><input id="setting-capacity" type="number" min="10" max="500" step="5" class="text-input"><span>kg</span></div></div>
+              <div><label class="field-label" for="setting-speed">Average city speed</label><div class="unit-input"><input id="setting-speed" type="number" min="10" max="80" step="5" class="text-input"><span>km/h</span></div></div>
+              <div><label class="field-label" for="setting-service">Service time per stop</label><div class="unit-input"><input id="setting-service" type="number" min="0" max="30" step="1" class="text-input"><span>min</span></div></div>
+            </div>
+          </article>
+          <article class="panel settings-panel"><div class="panel-heading"><div><h2>Route preferences</h2><p>Choose the default search and optimization methods.</p></div></div>
+            <div class="settings-grid">
+              <div><label class="field-label" for="setting-solver">Optimization solver</label><select id="setting-solver" class="text-input"><option>Simulated Annealing</option><option>Genetic Algorithm</option><option>Hill Climbing (2-opt)</option><option>Nearest Neighbor (Baseline)</option></select></div>
+              <div><label class="field-label" for="setting-search">Road path search</label><select id="setting-search" class="text-input"><option>A*</option><option>UCS</option><option>BFS</option><option>DFS</option></select></div>
+              <div><label class="field-label" for="setting-map">Map style</label><select id="setting-map" class="text-input"><option>Google Maps (Standard)</option><option>Voyager</option><option>Positron (Light)</option><option>Dark Matter</option></select></div>
+            </div>
+            <label class="check-row"><input id="setting-round-trip" type="checkbox"><span><strong>Return to depot</strong><small>Include the depot as the final stop in the route.</small></span></label>
+            <div class="settings-footer"><small>Theme selection is stored in this browser.</small><button class="button button-primary" id="save-settings">Save fleet settings</button></div>
+          </article>
+          <article class="panel settings-note"><strong>About map and route data</strong><p>Road geometry and distance calculations use the local Karachi graph. Google Maps and CARTO basemaps require an internet connection. Location autocomplete can query OpenStreetMap Nominatim when local matches are limited.</p><small>Map data © Google or © OpenStreetMap contributors and CARTO, depending on the selected layer.</small></article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

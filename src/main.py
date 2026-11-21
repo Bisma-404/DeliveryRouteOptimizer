@@ -1,24 +1,13 @@
-"""Main entry point for Delivery Route Optimizer.
-
-Launches the Tkinter GUI application or executes CLI benchmarks.
-"""
+"""Command-line entry point for the web application and benchmark suite."""
 
 import os
 import sys
 import argparse
-import tempfile
 import logging
-import tkinter as tk
 
-# Set writable Matplotlib config directory before importing matplotlib
-os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "delivery_route_mpl"))
-
-# Ensure project root is on sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
-from src.gui.app import DeliveryRouteOptimizerApp
 
 
 def setup_logging():
@@ -35,12 +24,12 @@ def main():
     setup_logging()
 
     parser = argparse.ArgumentParser(
-        description="Delivery Route Optimizer on a Real City Map (Karachi)"
+        description="Delivery Route Optimizer web application for Karachi"
     )
     parser.add_argument(
         "--experiment",
         action="store_true",
-        help="Run standalone benchmark experiment suite without launching GUI."
+        help="Run standalone benchmark experiment suite instead of the web application."
     )
     parser.add_argument(
         "--instances",
@@ -48,6 +37,8 @@ def main():
         default=10,
         help="Number of test instances for experiment (default: 10)."
     )
+    parser.add_argument("--host", default="127.0.0.1", help="Web server interface (default: localhost).")
+    parser.add_argument("--port", type=int, default=5000, help="Web server port (default: 5000).")
     args = parser.parse_args()
 
     if args.experiment:
@@ -57,10 +48,11 @@ def main():
         print("=== Benchmark Finished Successfully ===\n")
         return
 
-    # Start Tkinter GUI
-    root = tk.Tk()
-    app = DeliveryRouteOptimizerApp(root)
-    root.mainloop()
+    from src.webapp import create_app
+
+    app = create_app()
+    logging.getLogger(__name__).info("Starting Route Desk at http://%s:%d", args.host, args.port)
+    app.run(host=args.host, port=args.port, debug=False, threaded=True, use_reloader=False)
 
 
 if __name__ == "__main__":

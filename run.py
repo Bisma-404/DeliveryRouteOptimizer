@@ -1,24 +1,15 @@
 """
-Delivery Route Optimizer — Root Launcher
-=========================================
+Delivery Route Optimizer — Flask Launcher
+==========================================
 Run from the project root:
     python run.py
-
-Do NOT run from inside src/ — relative imports won't resolve.
 """
 
 from __future__ import annotations
+import argparse
+import logging
 import os
 import sys
-import tempfile
-import logging
-import tkinter as tk
-
-# ── Matplotlib config (must be set before ANY matplotlib import) ───────────────
-os.environ.setdefault(
-    "MPLCONFIGDIR",
-    os.path.join(tempfile.gettempdir(), "dro_mpl_cache")
-)
 
 # ── Project root on sys.path ──────────────────────────────────────────────────
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -36,16 +27,17 @@ logger = logging.getLogger("run")
 
 
 def main() -> None:
-    """Launch the full-screen Delivery Route Optimizer GUI."""
-    logger.info("Starting Delivery Route Optimizer — Fleet Logistics Edition")
-    logger.info("Project root: %s", PROJECT_ROOT)
+    """Launch the local browser-based Delivery Route Optimizer."""
+    parser = argparse.ArgumentParser(description="Delivery Route Optimizer web application")
+    parser.add_argument("--host", default="127.0.0.1", help="Interface to bind (default: localhost).")
+    parser.add_argument("--port", type=int, default=5000, help="HTTP port (default: 5000).")
+    args = parser.parse_args()
 
-    from src.gui.app import DeliveryRouteOptimizerApp
+    from src.webapp import create_app
 
-    root = tk.Tk()
-    _app = DeliveryRouteOptimizerApp(root)
-    root.mainloop()
-    logger.info("Application closed normally.")
+    app = create_app()
+    logger.info("Starting Route Desk at http://%s:%d", args.host, args.port)
+    app.run(host=args.host, port=args.port, debug=False, threaded=True, use_reloader=False)
 
 
 if __name__ == "__main__":
